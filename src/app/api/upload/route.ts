@@ -12,7 +12,7 @@ function parseExcelFile(buffer: ArrayBuffer, year: number, month: number) {
   let headerRowIndex = -1
   for (let i = 0; i < Math.min(10, rows.length); i++) {
     const row = rows[i]
-    if (Array.isArray(row) && row.some(cell => String(cell).trim() === 'NO')) {
+    if (Array.isArray(row) && row.some(cell => cell != null && String(cell).trim() === 'NO')) {
       headerRowIndex = i
       break
     }
@@ -22,10 +22,11 @@ function parseExcelFile(buffer: ArrayBuffer, year: number, month: number) {
     throw new Error('헤더 행(NO)을 찾을 수 없습니다.')
   }
 
-  const headerRow = rows[headerRowIndex].map(cell => String(cell || '').trim())
+  const rawRow = rows[headerRowIndex]
+  const headerRow: string[] = Array.from({ length: rawRow.length }, (_, i) => String(rawRow[i] ?? '').trim())
 
   const findCol = (keywords: string[]) => {
-    return headerRow.findIndex(h => keywords.some(k => h.includes(k)))
+    return headerRow.findIndex(h => h !== '' && keywords.some(k => h.includes(k)))
   }
 
   const colNo = findCol(['NO'])
@@ -45,7 +46,7 @@ function parseExcelFile(buffer: ArrayBuffer, year: number, month: number) {
 
   let actualDaesung = colDaesung
   if (actualDaesung === colBranch) {
-    actualDaesung = headerRow.findIndex((h, i) => i > colBranch && (h.includes('대성') || h.includes('No.')))
+    actualDaesung = headerRow.findIndex((h, i) => i > colBranch && h !== '' && (h.includes('대성') || h.includes('No.')))
   }
 
   const defects = []

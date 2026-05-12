@@ -145,29 +145,77 @@ export default function Dashboard() {
       {/* 월별 추이 */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">월별 불량 추이</h3>
-        <div className="overflow-x-auto">
-          <div className="flex items-end gap-1 h-40 min-w-[600px]">
-            {stats.byMonth.map((row) => {
-              const maxCount = Math.max(...stats.byMonth.map((m) => m.count));
-              const height = maxCount > 0 ? (row.count / maxCount) * 100 : 0;
-              return (
-                <div
-                  key={`${row.year}-${row.month}`}
-                  className="flex-1 flex flex-col items-center gap-1"
-                >
-                  <span className="text-xs text-gray-500">{row.count}</span>
-                  <div
-                    className="w-full bg-blue-400 rounded-t min-h-[2px]"
-                    style={{ height: `${height}%` }}
-                  />
-                  <span className="text-[10px] text-gray-400 rotate-[-45deg] origin-top-left whitespace-nowrap">
-                    {row.year % 100}.{row.month}
-                  </span>
+        {(() => {
+          const maxCount = Math.max(...stats.byMonth.map((m) => m.count), 1);
+          const years = [...new Set(stats.byMonth.map((m) => m.year))];
+          const yearColors: Record<number, string> = {};
+          const colorList = ["bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-purple-500"];
+          years.forEach((y, i) => { yearColors[y] = colorList[i % colorList.length]; });
+          const gridLines = [0, 0.25, 0.5, 0.75, 1].map((r) => Math.round(maxCount * r));
+
+          return (
+            <>
+              {/* 범례 */}
+              <div className="flex gap-4 mb-3">
+                {years.map((y) => (
+                  <div key={y} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span className={`inline-block w-3 h-3 rounded ${yearColors[y]}`} />
+                    {y}년
+                  </div>
+                ))}
+              </div>
+
+              <div className="overflow-x-auto">
+                <div className="relative min-w-[700px]">
+                  {/* Y축 그리드 */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ bottom: "32px" }}>
+                    {gridLines.reverse().map((v, i) => (
+                      <div key={i} className="flex items-center">
+                        <span className="text-[10px] text-gray-400 w-8 text-right pr-2">{v}</span>
+                        <div className="flex-1 border-t border-gray-100" />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 바 차트 */}
+                  <div className="flex items-end gap-[3px] pl-9" style={{ height: "200px", paddingBottom: "32px" }}>
+                    {stats.byMonth.map((row, idx) => {
+                      const height = (row.count / maxCount) * 100;
+                      const isYearStart = idx === 0 || stats.byMonth[idx - 1].year !== row.year;
+                      return (
+                        <div
+                          key={`${row.year}-${row.month}`}
+                          className={`flex-1 flex flex-col items-center justify-end ${isYearStart && idx > 0 ? "ml-2" : ""}`}
+                          style={{ height: "100%" }}
+                        >
+                          {/* 건수 라벨 */}
+                          <span className="text-[10px] font-medium text-gray-600 mb-0.5">
+                            {row.count}
+                          </span>
+                          {/* 바 */}
+                          <div
+                            className={`w-full rounded-t ${yearColors[row.year]} transition-all min-h-[3px]`}
+                            style={{ height: `${height}%` }}
+                            title={`${row.year}년 ${row.month}월: ${row.count}건`}
+                          />
+                          {/* X축 라벨 */}
+                          <span className="text-[10px] text-gray-500 mt-1 leading-none">
+                            {row.month}월
+                          </span>
+                          {isYearStart && (
+                            <span className="text-[9px] text-gray-400 leading-none">
+                              {row.year}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
