@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DefectStats } from "@/types/database";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<DefectStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -109,8 +111,12 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold mb-4">기종별 불량 현황</h3>
           <div className="space-y-3">
             {stats.byModel.slice(0, 10).map((row) => (
-              <div key={row.model} className="flex items-center gap-3">
-                <span className="text-sm w-24 font-medium truncate">{row.model}</span>
+              <button
+                key={row.model}
+                onClick={() => router.push(`/defects?model=${encodeURIComponent(row.model)}`)}
+                className="w-full flex items-center gap-3 hover:bg-gray-50 rounded p-1 -m-1 transition-colors cursor-pointer"
+              >
+                <span className="text-sm w-24 font-medium truncate text-left">{row.model}</span>
                 <div className="flex-1 bg-gray-200 rounded-full h-3">
                   <div
                     className="bg-green-500 h-3 rounded-full"
@@ -120,7 +126,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <span className="text-sm text-gray-600 w-12 text-right">{row.count}건</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -130,13 +136,17 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold mb-4">불량 유형 TOP 10</h3>
           <div className="space-y-3">
             {stats.topAnalysis.map((row, i) => (
-              <div key={row.analysis} className="flex items-center gap-3">
+              <button
+                key={row.analysis}
+                onClick={() => router.push(`/defects?search=${encodeURIComponent(row.analysis)}`)}
+                className="w-full flex items-center gap-3 hover:bg-gray-50 rounded p-1 -m-1 transition-colors cursor-pointer"
+              >
                 <span className="text-sm bg-gray-100 rounded px-2 py-0.5 w-6 text-center">
                   {i + 1}
                 </span>
-                <span className="text-sm flex-1 truncate">{row.analysis}</span>
+                <span className="text-sm flex-1 truncate text-left">{row.analysis}</span>
                 <span className="text-sm text-gray-600 w-12 text-right">{row.count}건</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

@@ -1,17 +1,28 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Defect } from "@/types/database";
 
 export default function DefectsPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8 text-gray-500">로딩 중...</div>}>
+      <DefectsContent />
+    </Suspense>
+  );
+}
+
+function DefectsContent() {
+  const searchParams = useSearchParams();
+
   const [defects, setDefects] = useState<Defect[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] = useState("");
-  const [year, setYear] = useState("");
-  const [month, setMonth] = useState("");
-  const [model, setModel] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [year, setYear] = useState(searchParams.get("year") || "");
+  const [month, setMonth] = useState(searchParams.get("month") || "");
+  const [model, setModel] = useState(searchParams.get("model") || "");
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
