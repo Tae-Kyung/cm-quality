@@ -40,7 +40,7 @@ function parseExcelFile(buffer: ArrayBuffer, year: number, month: number) {
   const colChangmyung = findCol(['창명'])
   const colPrice = findCol(['제품', '단가'])
   const colInjection = findCol(['사출'])
-  const colClaim = findCol(['클레임', '비용'])
+  const colClaim = findCol(['클레임비용', '클레임'])
   const colTotal = findCol(['합계', '합 계'])
   const colRemarks = findCol(['비고', '비 고'])
 
@@ -86,7 +86,10 @@ function parseExcelFile(buffer: ArrayBuffer, year: number, month: number) {
       product_price: colPrice >= 0 ? getNumber(colPrice) : 0,
       injection_cost: colInjection >= 0 ? getNumber(colInjection) : 0,
       claim_cost: colClaim >= 0 ? getNumber(colClaim) : 0,
-      total_cost: colTotal >= 0 ? getNumber(colTotal) : 0,
+      total_cost: colTotal >= 0 ? getNumber(colTotal) :
+        (colPrice >= 0 ? getNumber(colPrice) : 0) +
+        (colInjection >= 0 ? getNumber(colInjection) : 0) +
+        (colClaim >= 0 ? getNumber(colClaim) : 0),
       remarks: colRemarks >= 0 ? getValue(colRemarks) : null,
     })
   }
