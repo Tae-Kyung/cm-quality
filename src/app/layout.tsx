@@ -38,6 +38,9 @@ export default function RootLayout({
                 <a href="/defects" className="text-gray-700 hover:text-blue-600 font-medium">
                   불량 데이터
                 </a>
+                <a href="/analysis" className="text-gray-700 hover:text-blue-600 font-medium">
+                  리드타임 분석
+                </a>
                 <a href="/upload" className="text-gray-700 hover:text-blue-600 font-medium">
                   데이터 업로드
                 </a>
