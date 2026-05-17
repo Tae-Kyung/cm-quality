@@ -16,17 +16,28 @@ interface ModelStat {
   distribution: Distribution[];
 }
 
+interface AnalysisStat {
+  analysis: string;
+  count: number;
+  avgMonths: number;
+  minMonths: number;
+  maxMonths: number;
+  distribution: Distribution[];
+}
+
 interface LeadTimeData {
   totalRecords: number;
   avgLeadTimeMonths: number;
   overallDistribution: Distribution[];
   byModel: ModelStat[];
+  byAnalysis: AnalysisStat[];
 }
 
 export default function AnalysisPage() {
   const [data, setData] = useState<LeadTimeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/lead-time")
@@ -55,10 +66,20 @@ export default function AnalysisPage() {
     );
   }
 
-  const maxDistCount = Math.max(...data.overallDistribution.map((d) => d.count), 1);
   const activeModel = selectedModel ? data.byModel.find((m) => m.model === selectedModel) : null;
-  const activeDistribution = activeModel ? activeModel.distribution : data.overallDistribution;
+  const activeAnalysis = selectedAnalysis ? data.byAnalysis.find((a) => a.analysis === selectedAnalysis) : null;
+  const activeDistribution = activeModel
+    ? activeModel.distribution
+    : activeAnalysis
+      ? activeAnalysis.distribution
+      : data.overallDistribution;
   const activeMaxCount = Math.max(...activeDistribution.map((d) => d.count), 1);
+  const activeLabel = activeModel
+    ? `${activeModel.model} 리드타임 분포`
+    : activeAnalysis
+      ? `${activeAnalysis.analysis} 리드타임 분포`
+      : "전체 리드타임 분포";
+  const activeStat = activeModel || activeAnalysis;
 
   return (
     <div className="space-y-8">
@@ -94,12 +115,10 @@ export default function AnalysisPage() {
       {/* 리드타임 분포 차트 */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">
-            {selectedModel ? `${selectedModel} 리드타임 분포` : "전체 리드타임 분포"}
-          </h3>
-          {selectedModel && (
+          <h3 className="text-lg font-semibold">{activeLabel}</h3>
+          {(selectedModel || selectedAnalysis) && (
             <button
-              onClick={() => setSelectedModel(null)}
+              onClick={() => { setSelectedModel(null); setSelectedAnalysis(null); }}
               className="text-sm text-blue-600 hover:underline"
             >
               전체 보기
@@ -130,12 +149,12 @@ export default function AnalysisPage() {
             })}
           </div>
         </div>
-        {activeModel && (
+        {activeStat && (
           <div className="mt-3 text-sm text-gray-500 flex gap-6">
-            <span>평균: <strong>{activeModel.avgMonths}개월</strong></span>
-            <span>최소: <strong>{activeModel.minMonths}개월</strong></span>
-            <span>최대: <strong>{activeModel.maxMonths}개월</strong></span>
-            <span>건수: <strong>{activeModel.count}건</strong></span>
+            <span>평균: <strong>{activeStat.avgMonths}개월</strong></span>
+            <span>최소: <strong>{activeStat.minMonths}개월</strong></span>
+            <span>최대: <strong>{activeStat.maxMonths}개월</strong></span>
+            <span>건수: <strong>{activeStat.count}건</strong></span>
           </div>
         )}
       </div>
@@ -162,7 +181,7 @@ export default function AnalysisPage() {
                   <tr
                     key={m.model}
                     className={`border-b hover:bg-gray-50 cursor-pointer ${selectedModel === m.model ? "bg-blue-50" : ""}`}
-                    onClick={() => setSelectedModel(selectedModel === m.model ? null : m.model)}
+                    onClick={() => { setSelectedAnalysis(null); setSelectedModel(selectedModel === m.model ? null : m.model); }}
                   >
                     <td className="py-2 px-3 font-medium">{m.model}</td>
                     <td className="py-2 px-3 text-right">{m.count}건</td>
@@ -188,6 +207,56 @@ export default function AnalysisPage() {
           </table>
         </div>
         <p className="text-xs text-gray-400 mt-3">행을 클릭하면 해당 기종의 리드타임 분포를 위 차트에서 확인할 수 있습니다.</p>
+      </div>
+
+      {/* SNK 분석결과별 리드타임 테이블 */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">SNK 분석결과별 리드타임 현황</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left">
+                <th className="py-2 px-3">분석결과</th>
+                <th className="py-2 px-3 text-right">건수</th>
+                <th className="py-2 px-3 text-right">평균(개월)</th>
+                <th className="py-2 px-3 text-right">최소(개월)</th>
+                <th className="py-2 px-3 text-right">최대(개월)</th>
+                <th className="py-2 px-3">분포</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.byAnalysis.map((a) => {
+                const barMax = Math.max(...data.byAnalysis.map((x) => x.avgMonths), 1);
+                return (
+                  <tr
+                    key={a.analysis}
+                    className={`border-b hover:bg-gray-50 cursor-pointer ${selectedAnalysis === a.analysis ? "bg-purple-50" : ""}`}
+                    onClick={() => { setSelectedModel(null); setSelectedAnalysis(selectedAnalysis === a.analysis ? null : a.analysis); }}
+                  >
+                    <td className="py-2 px-3 font-medium">{a.analysis}</td>
+                    <td className="py-2 px-3 text-right">{a.count}건</td>
+                    <td className="py-2 px-3 text-right font-semibold text-purple-600">
+                      {a.avgMonths}
+                    </td>
+                    <td className="py-2 px-3 text-right text-green-600">{a.minMonths}</td>
+                    <td className="py-2 px-3 text-right text-red-600">{a.maxMonths}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-40">
+                          <div
+                            className="bg-purple-500 h-2 rounded-full"
+                            style={{ width: `${(a.avgMonths / barMax) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">행을 클릭하면 해당 불량 유형의 리드타임 분포를 위 차트에서 확인할 수 있습니다.</p>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export async function GET() {
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('qual_defects')
-    .select('year, month, week_number, model_name')
+    .select('year, month, week_number, model_name, snk_analysis')
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -37,6 +37,7 @@ export async function GET() {
 
   interface LeadTimeRecord {
     model: string
+    snkAnalysis: string | null
     weekCode: number
     defectYear: number
     defectMonth: number
@@ -57,6 +58,7 @@ export async function GET() {
 
     records.push({
       model: d.model_name || '미분류',
+      snkAnalysis: d.snk_analysis?.trim() || null,
       weekCode: d.week_number,
       defectYear: d.year,
       defectMonth: d.month,
@@ -94,6 +96,37 @@ export async function GET() {
     }))
     .sort((a, b) => b.count - a.count)
 
+  // SNK 분석결과별 리드타임 통계
+  const analysisStats = new Map<string, { total: number; count: number; min: number; max: number; distribution: Map<number, number> }>()
+
+  for (const r of records) {
+    const analysis = r.snkAnalysis
+    if (!analysis || analysis === '-' || analysis === 'X') continue
+    let stat = analysisStats.get(analysis)
+    if (!stat) {
+      stat = { total: 0, count: 0, min: Infinity, max: -Infinity, distribution: new Map() }
+      analysisStats.set(analysis, stat)
+    }
+    stat.total += r.leadTimeMonths
+    stat.count++
+    stat.min = Math.min(stat.min, r.leadTimeMonths)
+    stat.max = Math.max(stat.max, r.leadTimeMonths)
+    stat.distribution.set(r.leadTimeMonths, (stat.distribution.get(r.leadTimeMonths) || 0) + 1)
+  }
+
+  const byAnalysis = Array.from(analysisStats.entries())
+    .map(([analysis, stat]) => ({
+      analysis,
+      count: stat.count,
+      avgMonths: Math.round((stat.total / stat.count) * 10) / 10,
+      minMonths: stat.min === Infinity ? 0 : stat.min,
+      maxMonths: stat.max === -Infinity ? 0 : stat.max,
+      distribution: Array.from(stat.distribution.entries())
+        .map(([months, count]) => ({ months, count }))
+        .sort((a, b) => a.months - b.months),
+    }))
+    .sort((a, b) => b.count - a.count)
+
   // 전체 리드타임 분포
   const overallDist = new Map<number, number>()
   for (const r of records) {
@@ -112,5 +145,6 @@ export async function GET() {
     avgLeadTimeMonths: avgLeadTime,
     overallDistribution,
     byModel,
+    byAnalysis,
   })
 }
